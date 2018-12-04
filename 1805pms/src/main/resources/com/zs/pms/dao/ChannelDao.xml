@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zs.pms.dao.ChannelDao">
+
+	<select id="queryBypid" parameterType="int" resultType="Tchannel">
+		select * from tchannel where pid=#{pid}
+	</select>
+	<!-- 关联映射
+		type:最外面的对象
+		id:自己命名
+	 -->
+	 <resultMap type="Tchannel" id="channelmap">
+	 	<!-- 一对一关联
+	 		 property:属性名
+	 		 column:关联的字段名
+	 		 select:关联执行的SQL名称
+	 		   执行完SQL返回的对象赋值给属性dep		
+	 	 -->
+	 	 <association property="channel" column="pid" select="getChannel"/> 
+	 	
+	 </resultMap>
+	 
+	 <!-- 一对一关联执行的SQL -->
+	 <select id="getChannel" parameterType="int" resultType="Tchannel">
+	 	select * from tchannel where id=#{pid}
+	 </select>
+	
+	 <!-- sql片段 -->
+	 <!-- 查什么 -->
+	 <sql id="selector">
+	 	select * from tchannel
+	 </sql>
+	 <!-- 查询条件 -->
+	 <sql id="where">
+	 	<where><!-- 自动判断 -->
+	 	 <!-- 判字符串 -->
+	 	 <if test="cname!=null and cname!=''">
+	 	 	and cname=#{cname}
+	 	 </if>
+	 	   <!-- 判数字 -->
+	 	<if test="isleaf!=0">
+	 	 	and isleaf=#{isleaf}
+	 	 </if>
+	 	</where>
+	 	</sql>
+	 	<!-- 排序 -->
+	 	<sql id="order">
+	 		order by id desc
+	 	</sql>
+	 	<!-- 分页
+	 		大于号和小于号进行转义
+	 		>:&gt;
+	 		<:&lt;
+	 	 -->
+	 	 <sql id="page">
+	 	 	<where>
+	 	 		<if test="start!=0">
+	 	 			and rn&gt;=#{start}
+	 	 		</if>
+	 	 		<if test="end!=0">
+	 	 			and rn&lt;=#{end}
+	 	 		</if>
+	 	 	</where>
+	 	 </sql>
+	  <!--查询分页 -->
+	 <select id="queryByPage" parameterType="QueryTchannel" resultType="Tchannel">
+	 	<!-- 调用sql片段 -->
+	 	select * from 
+	 	(select rownum rn,t.*
+	 	from(
+	 	<include refid="selector"/>
+	 	<include refid="where"/>
+	 	<include refid="order"/>
+	 	)t)t1
+	 	<include refid="page"/>
+	 </select>
+	 
+	  <!-- 根据条件查询-->
+	 <select id="queryByCon" parameterType="QueryTchannel" resultType="Tchannel">
+	 	<!-- 调用sql片段 -->
+	 	<include refid="selector"/>
+	 	<include refid="where"/>
+	 	<include refid="order"/>
+	 </select>
+	 <!-- 查询条数 -->
+	 <select id="queryCount" parameterType="QueryTchannel" resultType="int">
+	 	select count(1)from tchannel
+	 	<include refid="where"/>
+	 </select>
+	 <!--  resultMap:关联返回 -->
+	  <select id="queryById" parameterType="int" resultType="Tchannel">
+	  	select * from  tchannel where id=#{id}
+	  </select>
+	  <!-- 批量删除 -->
+	  <delete id="deleteByIds" >
+	  	delete from tarticle where id in
+	  	<!-- 循环 
+	  		collection:数组类型   item:临时变量名   separator:分隔符
+	  		separator:以xxx开始   close:以xxx结束
+	  	-->
+	  	<foreach collection="array" item="id" separator="," open="(" close=")">
+	  		#{id}
+	  	</foreach>
+	  </delete>
+	  <!-- 修改 -->
+	  <update id="update" parameterType="Tchannel">
+	  	update tchannel
+	  	<set>
+	  		<!-- 去掉最后一个, -->
+	  		<trim suffixOverrides=",">
+	  			<if test="cname!=null and cname!=''">
+	  				cname=#{cname},
+	  			</if>
+	  			<if test="pid!=null and pid!=''">
+	  				pid=#{pid},
+	  			</if>
+	  				<if test="lev!=null and lev!=''">
+	  				lev=#{lev},
+	  			</if>
+	  			<if test="isleaf!=null and isleaf!=''">
+	  				isleaf=#{isleaf},
+	  			</if>
+	  			<if test="sort!=null and sort!=''">
+	  				sort=#{sort},
+	  			</if>
+	  			<if test="creator!=0">
+	  				creator=#{creator},
+	  			</if>
+	  			creatime=sysdate,
+	  			<if test="updator!=0">
+	  				updator=#{updator},
+	  			</if>
+	  			updatime=sysdate,
+	  		</trim>
+	  	</set>
+	  	where id=#{id}
+	  </update>
+	  <!-- 新增 -->
+	  <insert id="insert" parameterType="Tchannel">
+	  <!-- 主键 -->
+	  	<selectKey keyProperty="id" order="BEFORE" resultType="int">
+	  		select seq_channel.nextval from dual
+	  	</selectKey>
+	  	insert into tchannel(id,cname,pid,lev,isleaf,sort,creator,creatime,updator,updatime)
+	  	values(#{id},#{cname},#{pid},#{lev},#{isleaf},#{sort},#{creator},sysdate,#{updator},sysdate)
+	  </insert>
+	  <!-- 删除一条 -->
+	  <delete id="delete">
+	  	delete from tchannel where id=#{id}
+	  </delete>
+
+</mapper>

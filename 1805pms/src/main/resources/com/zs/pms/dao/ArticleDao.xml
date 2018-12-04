@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zs.pms.dao.ArticleDao">
+	<!-- 关联映射
+		type:最外面的对象
+		id:自己命名
+	 -->
+	 <resultMap type="Tarticle" id="articlemap">
+	  <!-- 主键 -->
+	 <id column="id" property="id"/>
+	 	<!-- 一对一关联
+	 		 property:属性名
+	 		 column:关联的字段名
+	 		 select:关联执行的SQL名称
+	 		   执行完SQL返回的对象赋值给属性dep		
+	 	 -->
+	 	 <association property="channel" column="channel" select="getChannel"/> 
+	 	
+	 </resultMap>
+	 <!-- 只关联频道 -->
+	 <resultMap type="Tarticle" id="articlemap2">
+	  <association property="channel" column="channel" select="getChannel"/> 
+	 </resultMap>
+	 <!-- 一对一关联执行的SQL -->
+	 <select id="getChannel" parameterType="int" resultType="Tchannel">
+	 	select * from tchannel where id=#{channel}
+	 </select>
+	<select id="getChannel2" parameterType="int" resultType="Tchannel">
+	 	select * from tchannel where id=#{id}
+	 </select>
+	 <!-- sql片段 -->
+	 <!-- 查什么 -->
+	 <sql id="selector">
+	 	select * from tarticle
+	 </sql>
+	 <!-- 查询条件 -->
+	 <sql id="where">
+	 	<where><!-- 自动判断 -->
+	 	 <!-- 判字符串 -->
+	 	 <if test="title!=null and title!=''">
+	 	 	and title=#{title}
+	 	 </if>
+	 	 <if test="author!=null and author!=''">
+	 	 	and author=#{author}
+	 	 </if>
+	 	  <!-- 判数字 -->
+	 	 <if test="ishot!=0">
+	 	 	and ishot=#{ishot}
+	 	 </if>
+	 	  <if test="isremod!=0">
+	 	 	and isremod=#{isremod}
+	 	 </if>
+	 	</where>
+	 	</sql>
+	 	<!-- 排序 -->
+	 	<sql id="order">
+	 		order by id desc
+	 	</sql>
+	 	<!-- 分页
+	 		大于号和小于号进行转义
+	 		>:&gt;
+	 		<:&lt;
+	 	 -->
+	 	 <sql id="page">
+	 	 	<where>
+	 	 		<if test="start!=0">
+	 	 			and rn&gt;=#{start}
+	 	 		</if>
+	 	 		<if test="end!=0">
+	 	 			and rn&lt;=#{end}
+	 	 		</if>
+	 	 	</where>
+	 	 </sql>
+	  <!--查询分页 -->
+	 <select id="queryByPage" parameterType="QueryTarticle" resultMap="articlemap2">
+	 	<!-- 调用sql片段 -->
+	 	select * from 
+	 	(select rownum rn,t.*
+	 	from(
+	 	<include refid="selector"/>
+	 	<include refid="where"/>
+	 	<include refid="order"/>
+	 	)t)t1
+	 	<include refid="page"/>
+	 </select>
+	 
+	  <!-- 根据条件查询-->
+	 <select id="queryByCon" parameterType="QueryTarticle" resultType="Tarticle">
+	 	<!-- 调用sql片段 -->
+	 	<include refid="selector"/>
+	 	<include refid="where"/>
+	 	<include refid="order"/>
+	 </select>
+	 <!-- 查询条数 -->
+	 <select id="queryCount" parameterType="QueryTarticle" resultType="int">
+	 	select count(1)from tarticle
+	 	<include refid="where"/>
+	 </select>
+	 <!--  resultMap:关联返回 -->
+	  <select id="queryById" parameterType="int" resultMap="articlemap">
+	  	select * from  tarticle where id=#{id}
+	  </select>
+	  <!-- 批量删除 -->
+	  <delete id="deleteByIds" >
+	  	delete from tarticle where id in
+	  	<!-- 循环 
+	  		collection:数组类型   item:临时变量名   separator:分隔符
+	  		separator:以xxx开始   close:以xxx结束
+	  	-->
+	  	<foreach collection="array" item="id" separator="," open="(" close=")">
+	  		#{id}
+	  	</foreach>
+	  </delete>
+	  <!-- 修改 -->
+	  <update id="update" parameterType="Tarticle">
+	  	update tarticle
+	  	<set>
+	  		<!-- 去掉最后一个, -->
+	  		<trim suffixOverrides=",">
+	  			<if test="title!=null and title!=''">
+	  				title=#{title},
+	  			</if>
+	  			<if test="content!=null and content!=''">
+	  				content=#{content},
+	  			</if>
+	  			<if test="author!=null and author!=''">
+	  				author=#{author},
+	  			</if>
+	  			<if test="channel!=null">
+	  				channel=#{channel.id},
+	  			</if>
+	  			
+	  			<if test="isremod!=0">
+	  				isremod=#{isremod},
+	  			</if>
+	  			<if test="ishot!=0">
+	  				ishot=#{ishot},
+	  			</if>
+	  			<if test="updator!=0">
+	  				updator=#{updator},
+	  			</if>
+	  			updatime=sysdate,
+	  		</trim>
+	  	</set>
+	  	where id=#{id}
+	  </update>
+	  <!-- 新增 -->
+	  <insert id="insert" parameterType="Tarticle">
+	  <!-- 主键 -->
+	  	<selectKey keyProperty="id" order="BEFORE" resultType="int">
+	  		select seq_tarticle.nextval from dual
+	  	</selectKey>
+	  	insert into tarticle(id,title,content,author,crtime,channel,isremod,ishot,creator)
+	  	values(#{id},#{title},#{content},#{author},sysdate,#{channel.id},1,1,#{creator})
+	  </insert>
+	  <!-- 删除一条 -->
+	  <delete id="delete">
+	  	delete from tarticle where id=#{id}
+	  </delete>
+</mapper>

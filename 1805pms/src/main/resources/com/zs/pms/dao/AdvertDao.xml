@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zs.pms.dao.AdvertDao">
+
+	 <resultMap type="Tadvert" id="advertemap">
+	  <!-- 主键 -->
+	 <id column="id" property="id"/>
+	 </resultMap>
+	 <!--  resultMap:关联返回 -->
+	  <select id="queryById" parameterType="int" resultMap="advertemap">
+	  	select * from  tadvert where id=#{id}
+	  </select>
+	 <!-- sql片段 -->
+	 <!-- 查什么 -->
+	 <sql id="selector">
+	 	select * from tadvert
+	 </sql>
+	 <!-- 查询条件 -->
+	 <sql id="where">
+	 	<where><!-- 自动判断 -->
+	 	 <!-- 判字符串 -->
+	 	 <if test="title!=null and title!=''">
+	 	 	and title=#{title}
+	 	 </if>
+	 	  <!-- 判数字 -->
+	 	<if test="isenabled!=0">
+	 	 	and isenabled=#{isenabled}
+	 	 </if>
+	 	</where>
+	 	</sql>
+	 	<!-- 排序 -->
+	 	<sql id="order">
+	 		order by id desc
+	 	</sql>
+	 	<!-- 分页
+	 		大于号和小于号进行转义
+	 		>:&gt;
+	 		<:&lt;
+	 	 -->
+	 	 <sql id="page">
+	 	 	<where>
+	 	 		<if test="start!=0">
+	 	 			and rn&gt;=#{start}
+	 	 		</if>
+	 	 		<if test="end!=0">
+	 	 			and rn&lt;=#{end}
+	 	 		</if>
+	 	 	</where>
+	 	 </sql>
+	  <!--查询分页 -->
+	 <select id="queryByPage" parameterType="QueryTadvert" resultType="Tadvert">
+	 	<!-- 调用sql片段 -->
+	 	select * from 
+	 	(select rownum rn,t.*
+	 	from(
+	 	<include refid="selector"/>
+	 	<include refid="where"/>
+	 	<include refid="order"/>
+	 	)t)t1
+	 	<include refid="page"/>
+	 </select>
+	 
+	  <!-- 根据条件查询-->
+	 <select id="queryByCon" parameterType="QueryTadvert" resultType="Tadvert">
+	 	<!-- 调用sql片段 -->
+	 	<include refid="selector"/>
+	 	<include refid="where"/>
+	 	<include refid="order"/>
+	 </select>
+	 <!-- 查询条数 -->
+	 <select id="queryCount" parameterType="QueryTadvert" resultType="int">
+	 	select count(1)from tadvert
+	 	<include refid="where"/>
+	 </select>
+	  <!-- 批量删除 -->
+	  <delete id="deleteByIds" >
+	  	delete from tarticle where id in
+	  	<!-- 循环 
+	  		collection:数组类型   item:临时变量名   separator:分隔符
+	  		separator:以xxx开始   close:以xxx结束
+	  	-->
+	  	<foreach collection="array" item="id" separator="," open="(" close=")">
+	  		#{id}
+	  	</foreach>
+	  </delete>
+	  <!-- 修改 -->
+	  <update id="update" parameterType="Tadvert">
+	  	update tadvert
+	  	<set>
+	  		<!-- 去掉最后一个, -->
+	  		<trim suffixOverrides=",">
+	  			<if test="title!=null and title!=''">
+	  				title=#{title},
+	  			</if>
+	  			<if test="content!=null and content!=''">
+	  				content=#{content},
+	  			</if>
+	  				crtime=sysdate;
+	  			<if test="crman!=null and crman!=''">
+	  				crman=#{crman},
+	  			</if>
+	  			<if test="isenabled!=0">
+	  				isenabled=#{isenabled},
+	  			</if>
+	  			<if test="updator!=0">
+	  				updator=#{updator},
+	  			</if>
+	  			updatime=sysdate,
+	  		</trim>
+	  	</set>
+	  	where id=#{id}
+	  </update>
+	  <!-- 新增 -->
+	  <insert id="insert" parameterType="Tadvert">
+	  <!-- 主键 -->
+	  	<selectKey keyProperty="id" order="BEFORE" resultType="int">
+	  		select seq_advert.nextval from dual
+	  	</selectKey>
+	  	insert into tadvert(id,title,content,crtime,crman,isenabled,updator,updatime)
+	  	values(#{id},#{title},#{content},sysdate,#{crman},1,#{updator},sysdate)
+	  </insert>
+	  <!-- 删除一条 -->
+	  <delete id="delete">
+	  	delete from tadvert where id=#{id}
+	  </delete>
+</mapper>
